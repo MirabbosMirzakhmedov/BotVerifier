@@ -1,0 +1,8 @@
+.idea
+.env
+.git
+__pycache__/
+secret.py
+creds.json
+BOT_ORDER.session
+BOT_ORDER.session-journal
