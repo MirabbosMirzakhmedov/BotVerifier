@@ -1,13 +1,15 @@
+import os
+
 import gspread
 from pyrogram import Client, filters
 from pyrogram.types import Message, ForceReply
+from pyrogram.types import Photo
 
 from keyboards import initial_keyboard, questions_keyboard
 from secret import (
     API_ID,
     API_HASH,
     BOT_TOKEN,
-    OWNER_ID,
     CHANNEL_LINK
 )
 
@@ -64,6 +66,7 @@ async def get_FAQ(client: Client, message: Message) -> None:
     )
 
 
+# First answer
 @bot.on_message(
     filters.regex(questions_keyboard.keyboard[0][0].text) & filters.private)
 async def get_first_FAQ_answer(client: Client, message: Message) -> None:
@@ -79,6 +82,7 @@ async def get_first_FAQ_answer(client: Client, message: Message) -> None:
     )
 
 
+# Second answer
 @bot.on_message(
     filters.regex(questions_keyboard.keyboard[1][0].text) & filters.private)
 async def get_second_FAQ_answer(client: Client, message: Message) -> None:
@@ -95,6 +99,7 @@ async def get_second_FAQ_answer(client: Client, message: Message) -> None:
     )
 
 
+# Third answer
 @bot.on_message(
     filters.regex(questions_keyboard.keyboard[2][0].text) & filters.private)
 async def get_third_FAQ_answer(client: Client, message: Message) -> None:
@@ -109,6 +114,7 @@ async def get_third_FAQ_answer(client: Client, message: Message) -> None:
     )
 
 
+# GO back button
 @bot.on_message(
     filters.regex(questions_keyboard.keyboard[3][0].text) & filters.private)
 async def get_back_FAQ_answer(client: Client, message: Message) -> None:
@@ -139,10 +145,8 @@ async def input_name_handler(client: Client, update: Message):
                 else:
                     first_name = names[0].title()
                     last_name = names[1].title()
-
                     greeting = f"**Hello, {first_name} {last_name}!**\n\n" \
                                f"Please respond to this message with your ID number.\n\n" \
-                               f"**Example:** MK__123456789__\n\n" \
                                f"**/menu** — back to menu"
 
                     await client.send_message(
@@ -153,9 +157,8 @@ async def input_name_handler(client: Client, update: Message):
                     )
                     user_info.append(first_name)
                     user_info.append(last_name)
-            except Exception as err:
+            except Exception:
                 pass
-
         if update.reply_to_message.reply_markup.placeholder == "Identification number":
             try:
                 if not update.text[:2] == 'MK':
@@ -169,19 +172,49 @@ async def input_name_handler(client: Client, update: Message):
                     return
                 else:
                     id_number = update.text
+                    # screenshot
+                    await client.send_message(
+                        chat_id=update.chat.id,
+                        text='Envoie-moi la preuve de dépôt que Markets t’a envoyé par mail',
+                        reply_markup=ForceReply(
+                            placeholder='Screenshot')
+                    )
+                    user_info.append(id_number)
+
+            except Exception:
+                pass
+        if update.reply_to_message.reply_markup.placeholder == "Screenshot":
+
+            try:
+                if type(update.photo) == Photo:
                     reply_text = f"Congratulations, you have passed the verification✅\n\n" \
                                  f"Here is the link to our secret " \
                                  f"[Telegram Channel]({CHANNEL_LINK})\n\n"
-
                     await client.send_message(
                         chat_id=update.chat.id,
                         text=reply_text,
                         disable_web_page_preview=True,
                         reply_markup=initial_keyboard
                     )
-                    user_info.append(id_number)
+                    screenshot = await bot.download_media(
+                        message=update.photo.file_id, file_name="photo.jpg")
+                    with open(screenshot, "rb"):
+                        user_info.append(screenshot)
+
+                else:
+                    await client.send_message(
+                        chat_id=update.chat.id,
+                        text="We were unable to process the photo you sent. Please send a valid photo in compressed mode.",
+                        reply_markup=ForceReply(
+                            placeholder="Screenshot"
+                        )
+                    )
+                    return
+
+
             except Exception:
                 pass
+
 
     else:
         await client.send_message(
@@ -190,17 +223,25 @@ async def input_name_handler(client: Client, update: Message):
         )
 
     if len(user_info) > 2:
-        await client.send_message(
-            chat_id=OWNER_ID,
-            text=
-            f"""**New User**
+        try:
+
+            await client.send_photo(
+                chat_id='368195441',
+                photo=user_info[3],
+                caption=
+                f"""**New User**
 
 **First name**: {user_info[0]}
 **Last name:** {user_info[1]}
-**Username:** `{update.chat.username}`
+**Username:** @{'Not Available' if update.chat.username is None else update.chat.username}
 **MK number:** `{user_info[2]}`
 """
-        )
+            )
+
+            if os.path.exists(user_info[3]):
+                os.remove(user_info[3])
+        except Exception:
+            pass
 
     return post_user_fullname(user_info)
 
