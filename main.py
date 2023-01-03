@@ -1,32 +1,20 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message, KeyboardButton, ReplyKeyboardMarkup, ForceReply
-import sqlite3
 import gspread
-from secret import API_ID, API_HASH, BOT_TOKEN
+from pyrogram import Client, filters
+from pyrogram.types import Message, ForceReply
+
+from keyboards import initial_keyboard, questions_keyboard
+from secret import (
+    API_ID,
+    API_HASH,
+    BOT_TOKEN,
+    OWNER_ID,
+    CHANNEL_LINK
+)
 
 bot = Client("BOT_ORDER", api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN)
-
-initial_keyboard = ReplyKeyboardMarkup(
-    [
-        [KeyboardButton(text='J’ai déposé les documents ✅')],
-        [KeyboardButton(text='J’ai besoin d’aide 📥')],
-        [KeyboardButton(text='FAQ ⁉️')]
-    ],
-    resize_keyboard=True
-)
-
-questions_keyboard = ReplyKeyboardMarkup(
-    [
-        [KeyboardButton(text='What is a lion?')],
-        [KeyboardButton(text='What is a watermelon?')],
-        [KeyboardButton(text='Who is Barack Obama?')],
-        [KeyboardButton(text='⬅️Back')],
-    ],
-    resize_keyboard=True
-)
-
+             api_hash=API_HASH,
+             bot_token=BOT_TOKEN)
+user_info = []
 
 
 # Function to reply /start command
@@ -36,13 +24,16 @@ async def welcome(client: Client, message: Message):
         text=f"**Hello, {message.from_user.first_name}!**\n\nPlease, choose an option below!",
         disable_web_page_preview=False, reply_markup=initial_keyboard)
 
+
 @bot.on_message(filters.command(commands=['menu']) & filters.private)
 async def menu(client: Client, message: Message):
     await message.reply_text(
         text=f"**Dear {message.from_user.first_name}!**\n\nPlease, choose an option below!",
         disable_web_page_preview=False, reply_markup=initial_keyboard)
 
-@bot.on_message(filters.regex(initial_keyboard.keyboard[0][0].text) & filters.private)
+
+@bot.on_message(
+    filters.regex(initial_keyboard.keyboard[0][0].text) & filters.private)
 async def get_username(client: Client, message: Message) -> None:
     await message.reply(
         text='Before we proceed, we need to do 2 step Verification.\n\n' \
@@ -53,14 +44,18 @@ async def get_username(client: Client, message: Message) -> None:
         )
     )
 
-@bot.on_message(filters.regex(initial_keyboard.keyboard[1][0].text) & filters.private)
+
+@bot.on_message(
+    filters.regex(initial_keyboard.keyboard[1][0].text) & filters.private)
 async def get_support(client: Client, message: Message) -> None:
     await client.send_message(
         chat_id=message.chat.id,
         text='Send a message to @g0uman 📥'
     )
 
-@bot.on_message(filters.regex(initial_keyboard.keyboard[2][0].text) & filters.private)
+
+@bot.on_message(
+    filters.regex(initial_keyboard.keyboard[2][0].text) & filters.private)
 async def get_FAQ(client: Client, message: Message) -> None:
     await client.send_message(
         chat_id=message.chat.id,
@@ -68,7 +63,9 @@ async def get_FAQ(client: Client, message: Message) -> None:
         reply_markup=questions_keyboard
     )
 
-@bot.on_message(filters.regex(questions_keyboard.keyboard[0][0].text) & filters.private)
+
+@bot.on_message(
+    filters.regex(questions_keyboard.keyboard[0][0].text) & filters.private)
 async def get_first_FAQ_answer(client: Client, message: Message) -> None:
     await client.send_photo(
         chat_id=message.chat.id,
@@ -81,7 +78,9 @@ async def get_first_FAQ_answer(client: Client, message: Message) -> None:
         reply_markup=questions_keyboard
     )
 
-@bot.on_message(filters.regex(questions_keyboard.keyboard[1][0].text) & filters.private)
+
+@bot.on_message(
+    filters.regex(questions_keyboard.keyboard[1][0].text) & filters.private)
 async def get_second_FAQ_answer(client: Client, message: Message) -> None:
     await client.send_photo(
         chat_id=message.chat.id,
@@ -95,7 +94,9 @@ async def get_second_FAQ_answer(client: Client, message: Message) -> None:
         reply_markup=questions_keyboard
     )
 
-@bot.on_message(filters.regex(questions_keyboard.keyboard[2][0].text) & filters.private)
+
+@bot.on_message(
+    filters.regex(questions_keyboard.keyboard[2][0].text) & filters.private)
 async def get_third_FAQ_answer(client: Client, message: Message) -> None:
     await client.send_photo(
         chat_id=message.chat.id,
@@ -107,7 +108,9 @@ async def get_third_FAQ_answer(client: Client, message: Message) -> None:
         reply_markup=questions_keyboard
     )
 
-@bot.on_message(filters.regex(questions_keyboard.keyboard[3][0].text) & filters.private)
+
+@bot.on_message(
+    filters.regex(questions_keyboard.keyboard[3][0].text) & filters.private)
 async def get_back_FAQ_answer(client: Client, message: Message) -> None:
     await client.send_message(
         chat_id=message.chat.id,
@@ -116,7 +119,6 @@ async def get_back_FAQ_answer(client: Client, message: Message) -> None:
     )
 
 
-# Need to fix this decorator
 @bot.on_message()
 async def input_name_handler(client: Client, update: Message):
     if update.reply_to_message:
@@ -146,8 +148,11 @@ async def input_name_handler(client: Client, update: Message):
                     await client.send_message(
                         chat_id=update.chat.id,
                         text=greeting,
-                        reply_markup=ForceReply(placeholder='Identification number')
+                        reply_markup=ForceReply(
+                            placeholder='Identification number')
                     )
+                    user_info.append(first_name)
+                    user_info.append(last_name)
             except Exception as err:
                 pass
 
@@ -166,7 +171,7 @@ async def input_name_handler(client: Client, update: Message):
                     id_number = update.text
                     reply_text = f"Congratulations, you have passed the verification✅\n\n" \
                                  f"Here is the link to our secret " \
-                                 f"[Telegram Channel]({'https://t.me/+iB4ViV7atY40Y2E0'})\n\n"
+                                 f"[Telegram Channel]({CHANNEL_LINK})\n\n"
 
                     await client.send_message(
                         chat_id=update.chat.id,
@@ -174,7 +179,8 @@ async def input_name_handler(client: Client, update: Message):
                         disable_web_page_preview=True,
                         reply_markup=initial_keyboard
                     )
-            except Exception as err:
+                    user_info.append(id_number)
+            except Exception:
                 pass
 
     else:
@@ -183,30 +189,40 @@ async def input_name_handler(client: Client, update: Message):
             text='Send **/menu** to see actions'
         )
 
-    return
+    if len(user_info) > 2:
+        await client.send_message(
+            chat_id=OWNER_ID,
+            text=
+            f"""**New User**
+
+**First name**: {user_info[0]}
+**Last name:** {user_info[1]}
+**Username:** `{update.chat.username}`
+**MK number:** `{user_info[2]}`
+"""
+        )
+
+    return post_user_fullname(user_info)
 
 
-def post_user_fullname(first_name, last_name, id_number):
-
+def post_user_fullname(user_info):
     sa = gspread.service_account(filename='creds.json')
     sheet_file = sa.open('telegram_test')
     sheet = sheet_file.worksheet('records')
 
-    try:
-        sheet.append_row(
-            [
-                str(first_name),
-                str(last_name),
-                str(id_number),
-            ]
-        )
-    except Exception:
-        pass
+    if len(user_info) > 2:
+        try:
+            sheet.append_row(
+                [
+                    str(user_info[0]),
+                    str(user_info[1]),
+                    str(user_info[2]),
+                ]
+            )
+        except Exception:
+            pass
 
     return
-
-
-
 
 
 print('Bot has started')
