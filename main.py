@@ -126,7 +126,7 @@ async def get_back_FAQ_answer(client: Client, message: Message) -> None:
 
 
 @bot.on_message()
-async def input_name_handler(client: Client, update: Message):
+async def input_handler(client: Client, update: Message):
     if update.reply_to_message:
         if update.reply_to_message.reply_markup.placeholder == "Full name":
             # Split the message text into first and last
@@ -155,13 +155,15 @@ async def input_name_handler(client: Client, update: Message):
                         reply_markup=ForceReply(
                             placeholder='Identification number')
                     )
+
                     user_info.append(first_name)
                     user_info.append(last_name)
+
             except Exception:
                 pass
         if update.reply_to_message.reply_markup.placeholder == "Identification number":
             try:
-                if not update.text[:2] == 'MK':
+                if not update.text[:2].lower() in ['mk', 'mK', 'Mk']:
                     await client.send_message(
                         chat_id=update.chat.id,
                         text="Invalid ID number. Please ensure that it starts with 'MK'",
@@ -179,7 +181,9 @@ async def input_name_handler(client: Client, update: Message):
                         reply_markup=ForceReply(
                             placeholder='Screenshot')
                     )
+
                     user_info.append(id_number)
+
 
             except Exception:
                 pass
@@ -200,7 +204,6 @@ async def input_name_handler(client: Client, update: Message):
                         message=update.photo.file_id, file_name="photo.jpg")
                     with open(screenshot, "rb"):
                         user_info.append(screenshot)
-
                 else:
                     await client.send_message(
                         chat_id=update.chat.id,
@@ -215,21 +218,14 @@ async def input_name_handler(client: Client, update: Message):
             except Exception:
                 pass
 
-
-    else:
-        await client.send_message(
-            chat_id=update.chat.id,
-            text='Send **/menu** to see actions'
-        )
-
     if len(user_info) > 2:
         try:
 
             await client.send_photo(
-                chat_id='368195441',
+                chat_id='me',
                 photo=user_info[3],
                 caption=
-                f"""**New User**
+f"""**New User**
 
 **First name**: {user_info[0]}
 **Last name:** {user_info[1]}
@@ -242,6 +238,12 @@ async def input_name_handler(client: Client, update: Message):
                 os.remove(user_info[3])
         except Exception:
             pass
+
+    else:
+        await client.send_message(
+            chat_id=update.chat.id,
+            text='Send **/menu** to see actions'
+        )
 
     return post_user_fullname(user_info)
 
