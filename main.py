@@ -4,7 +4,7 @@ import gspread
 from pyrogram import Client, filters
 from pyrogram.types import Message, ForceReply
 from pyrogram.types import Photo
-from typing import Dict
+
 from keyboards import initial_keyboard, questions_keyboard
 from secret import (
     API_ID,
@@ -16,13 +16,8 @@ from secret import (
 bot = Client("BOT_ORDER", api_id=API_ID,
              api_hash=API_HASH,
              bot_token=BOT_TOKEN)
-user_info = {
-    'chat_id': 0,
-    'first_name': '',
-    'last_name': '',
-    'mk_number': '',
-    'screenshot': ''
-}
+user_info = {}
+
 
 # Function to reply /start command
 @bot.on_message(filters.command(commands=['start']) & filters.private)
@@ -133,7 +128,6 @@ async def get_back_FAQ_answer(client: Client, message: Message) -> None:
 @bot.on_message()
 async def input_handler(client: Client, update: Message):
     global user_info
-    print(user_info)
     if update.reply_to_message:
         if update.reply_to_message.reply_markup.placeholder == "Full name":
             # Split the message text into first and last
@@ -163,9 +157,9 @@ async def input_handler(client: Client, update: Message):
                             placeholder='Identification number')
                     )
 
-                    user_info['chat_id'] = update.chat.id
-                    user_info['first_name'] = first_name
-                    user_info['last_name'] = last_name
+                    user_info[update.from_user.id] = {}
+                    user_info[update.from_user.id]["first_name"] = first_name
+                    user_info[update.from_user.id]["last_name"] = last_name
 
             except Exception:
                 pass
@@ -189,8 +183,8 @@ async def input_handler(client: Client, update: Message):
                         reply_markup=ForceReply(
                             placeholder='Screenshot')
                     )
-                    if user_info['chat_id'] == update.chat.id:
-                        user_info['mk_number'] = id_number
+
+                    user_info[update.from_user.id]["id"] = update.text
 
 
             except Exception:
@@ -211,8 +205,7 @@ async def input_handler(client: Client, update: Message):
                     screenshot = await bot.download_media(
                         message=update.photo.file_id, file_name="photo.jpg")
                     with open(screenshot, "rb"):
-                        if user_info['chat_id'] == update.chat.id:
-                            user_info['screenshot'] = screenshot
+                        user_info.append(screenshot)
                 else:
                     await client.send_message(
                         chat_id=update.chat.id,
@@ -227,54 +220,50 @@ async def input_handler(client: Client, update: Message):
             except Exception:
                 pass
 
-    if len(user_info) == 3:
-        print(len(user_info))
+    if len(user_info) > 2:
         try:
             await client.send_photo(
-                chat_id=OWNER_ID,
-                photo=user_info['screenshot'],
+                chat_id='me',
+                photo=user_info[3],
                 caption=
 f"""**New User**
 
-**First name**: {user_info['first_name']}
-**Last name:** {user_info['last_name']}
+**First name**: {user_info[0]}
+**Last name:** {user_info[1]}
 **Username:** @{'Not Available' if update.chat.username is None else update.chat.username}
-**MK number:** `{user_info['mk_number']}`
+**MK number:** `{user_info[2]}`
 """
             )
 
-            if os.path.exists(user_info['screenshot']):
-                os.remove(user_info['screenshot'])
+            if os.path.exists(user_info[3]):
+                os.remove(user_info[3])
         except Exception:
             pass
 
-        else:
-            await client.send_message(
-                chat_id=update.chat.id,
-                text='Send **/menu** to see actions'
-            )
-    single_user = update.chat.id
-    return post_user_fullname(user_info, single_user)
+    else:
+        await client.send_message(
+            chat_id=update.chat.id,
+            text='Send **/menu** to see actions'
+        )
+
+    return post_user_fullname(user_info)
 
 
-def post_user_fullname(user_info, single_user):
+def post_user_fullname(user_id):
     sa = gspread.service_account(filename='creds.json')
     sheet_file = sa.open('telegram_test')
     sheet = sheet_file.worksheet('records')
 
-    if len(user_info) == 4 and single_user == user_info['chat_id']:
-        try:
-            sheet.append_row(
-                [
-                    str(user_info['first_name']),
-                    str(user_info['last_name']),
-                    str(user_info['mk_number']),
-                ]
-            )
-        except Exception:
-            pass
-
-    return
+    try:
+        sheet.append_row(
+            [
+                str(user_info[user_id]["first_name"]),
+                str(user_info[user_id]["last_name"]),
+                str(user_info[user_id]["id"]),
+            ]
+        )
+    except Exception:
+        pass
 
 
 print('Bot has started')
