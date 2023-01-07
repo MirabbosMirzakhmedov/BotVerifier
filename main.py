@@ -16,7 +16,7 @@ from secret import (
 bot = Client("BOT_ORDER", api_id=API_ID,
              api_hash=API_HASH,
              bot_token=BOT_TOKEN)
-user_info = []
+user_info = {}
 
 
 # Function to reply /start command
@@ -127,6 +127,7 @@ async def get_back_FAQ_answer(client: Client, message: Message) -> None:
 
 @bot.on_message()
 async def input_handler(client: Client, update: Message):
+    global user_info
     if update.reply_to_message:
         if update.reply_to_message.reply_markup.placeholder == "Full name":
             # Split the message text into first and last
@@ -156,8 +157,9 @@ async def input_handler(client: Client, update: Message):
                             placeholder='Identification number')
                     )
 
-                    user_info.append(first_name)
-                    user_info.append(last_name)
+                    user_info[update.from_user.id] = {}
+                    user_info[update.from_user.id]["first_name"] = first_name
+                    user_info[update.from_user.id]["last_name"] = last_name
 
             except Exception:
                 pass
@@ -182,7 +184,7 @@ async def input_handler(client: Client, update: Message):
                             placeholder='Screenshot')
                     )
 
-                    user_info.append(id_number)
+                    user_info[update.from_user.id]["id"] = update.text
 
 
             except Exception:
@@ -248,24 +250,21 @@ f"""**New User**
     return post_user_fullname(user_info)
 
 
-def post_user_fullname(user_info):
+def post_user_fullname(user_id):
     sa = gspread.service_account(filename='creds.json')
     sheet_file = sa.open('telegram_test')
     sheet = sheet_file.worksheet('records')
 
-    if len(user_info) > 2:
-        try:
-            sheet.append_row(
-                [
-                    str(user_info[0]),
-                    str(user_info[1]),
-                    str(user_info[2]),
-                ]
-            )
-        except Exception:
-            pass
-
-    return
+    try:
+        sheet.append_row(
+            [
+                str(user_info[user_id]["first_name"]),
+                str(user_info[user_id]["last_name"]),
+                str(user_info[user_id]["id"]),
+            ]
+        )
+    except Exception:
+        pass
 
 
 print('Bot has started')
